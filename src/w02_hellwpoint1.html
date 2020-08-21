@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello point (1)</title>
+</head>
+
+<body>
+    <canvas id="webgl" width="400" height="400">
+        Please use the browser supporting "canvas"
+    </canvas>
+    <script src="../libs/webgl-utils.js"></script>
+    <script src="../libs/webgl-debug.js"></script>
+    <script src="../libs/cuon-utils.js"></script>
+    <script>
+        // 顶点着色器
+        const VSHADER_SOURCE = `
+            void main() {
+                gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+                gl_PointSize = 10.0;
+            }
+        `
+
+        // 片元着色器
+        const FSHADER_SOURCE = `
+            void main() {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        `
+
+        function main() {
+
+            var canvas = document.getElementById('webgl')
+
+            var gl = getWebGLContext(canvas)
+
+            if (!gl) {
+                console.log('Failed to get the rendering context for WebGL')
+                return
+            }
+
+            // 初始化着色器
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log('Failed to initialize shaders')
+                return
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0)
+
+            gl.clear(gl.COLOR_BUFFER_BIT)
+
+            gl.drawArrays(gl.POINTS, 0, 1)
+
+        }
+        main()
+    </script>
+</body>
+
+</html>
