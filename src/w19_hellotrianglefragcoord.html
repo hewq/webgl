@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>先平移后旋转</title>
+    <title>Hello Triangle Frag Coord</title>
 </head>
 
 <body>
@@ -14,22 +14,20 @@
     <script src="../libs/webgl-utils.js"></script>
     <script src="../libs/webgl-debug.js"></script>
     <script src="../libs/cuon-utils.js"></script>
-    <script src="../libs/cuon-matrix.js"></script>
-
     <script>
-        // 顶点着色器
-        let VSHADER_SOURCE = `
+        const VSHADER_SOURCE = `
             attribute vec4 a_Position;
-            uniform mat4 u_ModelMatrix;
             void main() {
-                gl_Position = u_ModelMatrix * a_Position;
+                gl_Position = a_Position;
             }
         `
 
-        // 片元着色器
-        let FSHADER_SOURCE = `
+        const FSHADER_SOURCE = `
+            precision mediump float;
+            uniform float u_Width;
+            uniform float u_Height;
             void main() {
-                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                gl_FragColor = vec4(gl_FragCoord.x / u_Width, 0.0, gl_FragCoord.y / u_Height, 1.0);
             }
         `
 
@@ -42,83 +40,59 @@
                 return
             }
 
-            // 初始化着色器
             if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-                console.log('Failed to initialized shaders')
+                console.log('Failed to initialized shader')
                 return
             }
 
-            // 设置顶点位置
             let n = initVertexBuffers(gl)
 
-            // 创建 Matrix4 对象以进行模型变换
-            let modelMatrix = new Matrix4()
-
-            // 计算模型矩阵
-            let ANGLE = 90.0
-            let Tx = 0.5
-
-            modelMatrix.setRotate(ANGLE, 0, 0, 1)
-            modelMatrix.translate(Tx, 0, 0)
-
-            // 先旋转后平移
-            // modelMatrix.setTranslate(Tx, 0, 0)
-            // modelMatrix.rotate(ANGLE, 0, 0, 1)
-
-            // 传输给着色器
-            let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix')
-
-            if (!u_ModelMatrix) {
-                console.log('Failed to get the uniform location')
+            if (n < 0) {
+                console.log('Failed to initialized vertex buffer')
                 return
             }
 
-            gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements)
+            let u_Width = gl.getUniformLocation(gl.program, 'u_Width')
+            let u_Height = gl.getUniformLocation(gl.program, 'u_Height')
 
-            // 清空
+            gl.uniform1f(u_Width, gl.drawingBufferWidth)
+            gl.uniform1f(u_Height, gl.drawingBufferHeight)
+
             gl.clearColor(0.0, 0.0, 0.0, 1.0)
             gl.clear(gl.COLOR_BUFFER_BIT)
 
-            // 绘制
             gl.drawArrays(gl.TRIANGLES, 0, n)
-
-
         }
 
         main()
 
         function initVertexBuffers(gl) {
-            let vertices = new Float32Array([0.0, 0.3, -0.3, -0.3, 0.3, -0.3])
+            let vertices = new Float32Array([0.0, 0.5, -0.5, -0.5, 0.5, -0.5])
             let n = 3
 
-            // 创建缓冲区
             let vertexBuffer = gl.createBuffer()
+
             if (!vertexBuffer) {
-                console.log('Failed to create the buffer object')
+                console.log('Failed to create buffer object')
                 return -1
             }
 
-            // 绑定缓冲区目标
             gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
 
-            // 写数据
             gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
-            // 连接
             let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
 
             if (a_Position < 0) {
-                console.log('Failed to get the storage location')
-                return
+                console.log('Failed to get the a_Position location')
+                return -1
             }
 
             gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0)
 
-            // 启用
             gl.enableVertexAttribArray(a_Position)
 
             return n
-
         }
     </script>
 </body>

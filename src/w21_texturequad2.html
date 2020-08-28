@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texture Quad 2</title>
+</head>
+
+<body>
+    <canvas id="webgl" width="400" height="400">
+        please use another browser to support canvas
+    </canvas>
+
+    <script src="../libs/webgl-utils.js"></script>
+    <script src="../libs/webgl-debug.js"></script>
+    <script src="../libs/cuon-utils.js"></script>
+    <script>
+        const VSHADER_SOURCE = `
+            attribute vec4 a_Position;
+            attribute vec2 a_TexCoord;
+            varying vec2 v_TexCoord;
+            void main() {
+                gl_Position = a_Position;
+                v_TexCoord = a_TexCoord;
+            }
+        `
+
+        const FSHADER_SOURCE = `
+            precision mediump float;
+            uniform sampler2D u_Sampler;
+            varying vec2 v_TexCoord;
+            void main() {
+                gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+            }
+        `
+
+        function main() {
+            let canvas = document.getElementById('webgl')
+            let gl = getWebGLContext(canvas)
+
+            if (!gl) {
+                console.log('Failed to get webgl context')
+                return
+            }
+
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log('Failed to intialized shader')
+                return
+            }
+
+            let n = initVertexBuffers(gl)
+
+            if (n < 0) {
+                console.log('Failed to initialized vertex buffers')
+                return
+            }
+
+            if (!initTextures(gl, n)) {
+                console.log('Failed to initialized texture')
+                return
+            }
+        }
+
+        main()
+
+        function initVertexBuffers(gl) {
+            let vertexTexCoords = new Float32Array([
+                // 顶点坐标， 纹理坐标
+                -0.5, 0.5, -0.3, 1.7, -0.5, -0.5, -0.3, -0.2,
+                0.5, 0.5, 1.7, 1.7,
+                0.5, -0.5, 1.7, -0.2
+            ])
+
+            let n = 4
+
+            let vertexTexCoordBuffer = gl.createBuffer()
+
+            const FSIZE = vertexTexCoords.BYTES_PER_ELEMENT
+
+            if (!vertexTexCoordBuffer) {
+                console.log('Failed to create the buffer object')
+                return -1
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer)
+            gl.bufferData(gl.ARRAY_BUFFER, vertexTexCoords, gl.STATIC_DRAW)
+
+            let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+
+            if (a_Position < 0) {
+                console.log('Failed to get a_Position location')
+                return -1
+            }
+
+            gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, FSIZE * 4, 0)
+            gl.enableVertexAttribArray(a_Position)
+
+            let a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord')
+
+            if (a_TexCoord < 0) {
+                console.log('Failed to get a_TexCoord location')
+                return -1
+            }
+
+            gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, FSIZE * 4, FSIZE * 2)
+            gl.enableVertexAttribArray(a_TexCoord)
+
+            return n
+        }
+
+        function initTextures(gl, n) {
+            let texture = gl.createTexture()
+
+            if (!texture) {
+                console.log('Failed to create the texture object')
+                return false
+            }
+
+            let u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler')
+
+            if (!u_Sampler) {
+                console.log('Failed to get u_Sampler location')
+                return false
+            }
+
+            let image = new Image()
+
+            image.onload = function() {
+                loadTexture(gl, n, texture, u_Sampler, image)
+            }
+
+            image.src = './images/flower.jpg'
+
+            return true
+
+        }
+
+        function loadTexture(gl, n, texture, u_Sampler, image) {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+
+            gl.activeTexture(gl.TEXTURE0)
+
+            gl.bindTexture(gl.TEXTURE_2D, texture)
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image)
+
+            gl.uniform1i(u_Sampler, 0)
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0)
+            gl.clear(gl.COLOR_BUFFER_BIT)
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, n)
+        }
+    </script>
+</body>
+
+</html>
