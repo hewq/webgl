@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello cubes</title>
+</head>
+
+<body>
+    <canvas id="webgl" width="400" height="400">
+        please use another browser to support canvas
+    </canvas>
+
+    <script src="../libs/webgl-utils.js"></script>
+    <script src="../libs/webgl-debug.js"></script>
+    <script src="../libs/cuon-utils.js"></script>
+    <script src="../libs/cuon-matrix.js"></script>
+    <script>
+        const VSHADER_SOURCE = `
+            attribute vec4 a_Position;
+            attribute vec4 a_Color;
+            uniform mat4 u_MvpMatrix;
+            varying vec4 v_Color;
+            void main() {
+                gl_Position = u_MvpMatrix * a_Position;
+                v_Color = a_Color;
+            }
+        `
+
+        const FSHADER_SOURCE = `
+            precision mediump float;
+            varying vec4 v_Color;
+            void main() {
+                gl_FragColor = v_Color;
+            }
+        `
+
+        function main() {
+            let canvas = document.getElementById('webgl')
+            let gl = getWebGLContext(canvas)
+
+            if (!gl) {
+                console.log('Failed to get webgl context')
+                return
+            }
+
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log('Failed to initialized shaders')
+                return
+            }
+
+            let n = initVertexBuffers(gl)
+
+            if (n < 0) {
+                console.log('Failed to initialized vertex buffers')
+                return
+            }
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0)
+            gl.enable(gl.DEPTH_TEST)
+
+            let u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix')
+
+            if (!u_MvpMatrix) {
+                console.log('Failed to get the uniform location')
+                return
+            }
+
+            let mvpMatrix = new Matrix4()
+
+            mvpMatrix.setPerspective(30, 1, 1, 100)
+            mvpMatrix.lookAt(3, 3, 7, 0, 0, 0, 0, 1, 0)
+
+            gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements)
+
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+            gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0)
+        }
+
+        main()
+
+        function initVertexBuffers(gl) {
+            let verticesColors = new Float32Array([
+                // 顶点坐标和颜色
+                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, // v0
+                -1.0, 1.0, 1.0, 1.0, 0.0, 1.0, // v1
+                -1.0, -1.0, 1.0, 1.0, 0.0, 0.0, // v2
+                1.0, -1.0, 1.0, 1.0, 1.0, 0.0, // v3
+                1.0, -1.0, -1.0, 0.0, 1.0, 0.0, // v4
+                1.0, 1.0, -1.0, 0.0, 1.0, 1.0, // v5
+                -1.0, 1.0, -1.0, 0.0, 0.0, 1.0, // v6
+                -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, // v7
+            ])
+
+            // 顶点索引
+            let indices = new Uint8Array([
+                0, 1, 2, 0, 2, 3, // 前
+                0, 3, 4, 0, 4, 5, // 右
+                0, 5, 6, 0, 6, 1, // 上
+                1, 6, 7, 1, 7, 2, // 左
+                7, 4, 3, 7, 3, 2, // 下
+                4, 7, 6, 4, 6, 5, // 后
+            ])
+
+            let vertexColorBuffer = gl.createBuffer()
+            let indexBuffer = gl.createBuffer()
+
+            if (!vertexColorBuffer || !indexBuffer) {
+                console.log('Failed to create the buffer object')
+                return -1
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer)
+            gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW)
+
+            const FSIZE = verticesColors.BYTES_PER_ELEMENT
+
+            let a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+
+            if (a_Position < 0) {
+                console.log('Failed to get the a_Position location')
+                return -1
+            }
+
+            gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 6, 0)
+            gl.enableVertexAttribArray(a_Position)
+
+            let a_Color = gl.getAttribLocation(gl.program, 'a_Color')
+
+            if (a_Color < 0) {
+                console.log('Failed to get the a_Color location')
+                return -1
+            }
+
+            gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3)
+            gl.enableVertexAttribArray(a_Color)
+
+            // 将顶点索引数据写入缓冲区
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+
+            return indices.length
+        }
+    </script>
+</body>
+
+</html>
